@@ -69,7 +69,10 @@ Route::post('/mahasiswa', function (Request $request) {
         'nama' => ['required', 'string', 'max:100'],
         'email' => ['required', 'email', 'max:100'],
         'usia' => ['required', 'integer', 'min:15', 'max:100'],
-        'program_studi_id' => ['required', 'integer'],
+        'program_studi_id' => ['required', 'integer', 'exists:program_studi,id'],
+    ], [
+        'email.email' => 'Format email tidak valid.',
+        'program_studi_id.exists' => 'Program studi yang dipilih tidak tersedia.',
     ]);
 
     try {
