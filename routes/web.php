@@ -4,19 +4,39 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/mahasiswa', function () {
+Route::get('/mahasiswa', function (Request $request) {
+    $kataKunci = trim((string) $request->query('q', ''));
+    $programStudiId = $request->query('program_studi_id', '');
+
     try {
         $pdo = DB::connection()->getPdo();
+        $sql = 'SELECT m.id, m.nim, m.nama, m.email, m.usia,
+                       m.program_studi_id, p.nama_prodi
+                FROM mahasiswa AS m
+                JOIN program_studi AS p
+                  ON p.id = m.program_studi_id
+                WHERE 1 = 1';
+        $parameter = [];
 
-        $ambilMahasiswa = $pdo->prepare(
-            'SELECT m.id, m.nim, m.nama, m.email, m.usia,
-                    p.nama_prodi
-             FROM mahasiswa AS m
-             JOIN program_studi AS p
-               ON p.id = m.program_studi_id
-             ORDER BY m.nim'
-        );
-        $ambilMahasiswa->execute();
+        if ($kataKunci !== '') {
+            $sql .= ' AND (m.nim LIKE :kata_kunci_nim
+                      OR m.nama LIKE :kata_kunci_nama
+                      OR m.email LIKE :kata_kunci_email)';
+            $nilaiPencarian = '%'.$kataKunci.'%';
+            $parameter['kata_kunci_nim'] = $nilaiPencarian;
+            $parameter['kata_kunci_nama'] = $nilaiPencarian;
+            $parameter['kata_kunci_email'] = $nilaiPencarian;
+        }
+
+        if ($programStudiId !== '') {
+            $sql .= ' AND m.program_studi_id = :program_studi_id';
+            $parameter['program_studi_id'] = (int) $programStudiId;
+        }
+
+        $sql .= ' ORDER BY m.nim';
+
+        $ambilMahasiswa = $pdo->prepare($sql);
+        $ambilMahasiswa->execute($parameter);
         $daftarMahasiswa = $ambilMahasiswa->fetchAll(PDO::FETCH_ASSOC);
 
         $ambilProdi = $pdo->prepare(
@@ -29,7 +49,9 @@ Route::get('/mahasiswa', function () {
 
         return view('mahasiswa', compact(
             'daftarMahasiswa',
-            'daftarProgramStudi'
+            'daftarProgramStudi',
+            'kataKunci',
+            'programStudiId'
         ));
     } catch (Throwable $error) {
         report($error);
