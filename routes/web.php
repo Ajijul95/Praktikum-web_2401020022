@@ -1,8 +1,13 @@
 <?php
 
+use App\Http\Controllers\BukuController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+
+Route::view('/', 'welcome')->name('home');
+Route::get('/buku', [BukuController::class, 'index'])->name('buku.index');
+Route::get('/buku/{kode}', [BukuController::class, 'show'])->name('buku.show');
 
 Route::get('/mahasiswa', function (Request $request) {
     $kataKunci = trim((string) $request->query('q', ''));
