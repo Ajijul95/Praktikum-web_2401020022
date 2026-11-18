@@ -1,12 +1,24 @@
 <?php
 
+use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BukuController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
-Route::resource('buku', BukuController::class)->except('show');
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [LoginController::class, 'show'])->name('login');
+    Route::post('/login', [LoginController::class, 'login'])->name('login.proses');
+});
+
+Route::post('/logout', [LoginController::class, 'logout'])
+    ->middleware('auth')
+    ->name('logout');
+
+Route::middleware(['auth', 'cache.headers:no_store;private'])->group(function () {
+    Route::resource('buku', BukuController::class)->except('show');
+});
 
 Route::get('/mahasiswa', function (Request $request) {
     $kataKunci = trim((string) $request->query('q', ''));

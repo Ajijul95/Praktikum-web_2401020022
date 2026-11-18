@@ -2,8 +2,10 @@
 
 use App\Models\Buku;
 use App\Models\Kategori;
+use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 
 beforeEach(function (): void {
@@ -13,6 +15,16 @@ beforeEach(function (): void {
         'database.connections.sqlite.foreign_key_constraints' => true,
     ]);
     DB::purge('sqlite');
+
+    Schema::connection('sqlite')->create('users', function (Blueprint $table): void {
+        $table->id();
+        $table->string('name');
+        $table->string('email')->unique();
+        $table->timestamp('email_verified_at')->nullable();
+        $table->string('password');
+        $table->rememberToken();
+        $table->timestamps();
+    });
 
     Schema::connection('sqlite')->create('kategoris', function (Blueprint $table): void {
         $table->id();
@@ -51,6 +63,12 @@ beforeEach(function (): void {
             'updated_at' => now(),
         ],
     ]);
+
+    $this->actingAs(User::create([
+        'name' => 'Pemilik Akun',
+        'email' => 'pemilik@example.test',
+        'password' => Hash::make('kata-sandi-uji'),
+    ]));
 });
 
 it('lists books with their categories and supports searching by code or title', function () {
