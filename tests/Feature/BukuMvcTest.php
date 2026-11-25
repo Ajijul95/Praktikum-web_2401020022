@@ -22,6 +22,7 @@ beforeEach(function (): void {
         $table->string('email')->unique();
         $table->timestamp('email_verified_at')->nullable();
         $table->string('password');
+        $table->string('role', 20)->default('pembaca');
         $table->rememberToken();
         $table->timestamps();
     });
@@ -68,6 +69,7 @@ beforeEach(function (): void {
         'name' => 'Pemilik Akun',
         'email' => 'pemilik@example.test',
         'password' => Hash::make('kata-sandi-uji'),
+        'role' => 'admin',
     ]));
 });
 
@@ -91,6 +93,77 @@ it('shows create form with categories', function () {
         ->assertSee('Basis Data')
         ->assertSee('Pemrograman')
         ->assertSee('name="_token"', false);
+});
+
+it('shows writing controls only to an admin', function () {
+    $this->get(route('buku.index'))
+        ->assertOk()
+        ->assertSee('Tambah Buku')
+        ->assertSee('Aksi')
+        ->assertSee('Ubah')
+        ->assertSee('Hapus');
+
+    $reader = User::create([
+        'name' => 'Pembaca Uji',
+        'email' => 'pembaca@example.test',
+        'password' => Hash::make('kata-sandi-uji'),
+        'role' => 'pembaca',
+    ]);
+
+    $this->actingAs($reader)
+        ->get(route('buku.index'))
+        ->assertOk()
+        ->assertSee('BK001')
+        ->assertSee('Pembaca Uji (pembaca)')
+        ->assertDontSee('Tambah Buku')
+        ->assertDontSee('Aksi')
+        ->assertDontSee('Ubah')
+        ->assertDontSee('Hapus');
+});
+
+it('denies a reader direct access to every book write route', function () {
+    $reader = User::create([
+        'name' => 'Pembaca Uji',
+        'email' => 'pembaca@example.test',
+        'password' => Hash::make('kata-sandi-uji'),
+        'role' => 'pembaca',
+    ]);
+
+    $this->actingAs($reader)
+        ->get(route('buku.create'))
+        ->assertForbidden();
+
+    $this->actingAs($reader)
+        ->post(route('buku.store'), [
+            'kode' => 'BK003',
+            'judul' => 'Buku Baru',
+            'kategori_id' => 1,
+        ])
+        ->assertForbidden();
+
+    $this->actingAs($reader)
+        ->put(route('buku.update', 1), [
+            'kode' => 'BK001',
+            'judul' => 'Judul Diubah',
+            'kategori_id' => 1,
+        ])
+        ->assertForbidden();
+
+    $this->actingAs($reader)
+        ->delete(route('buku.destroy', 1))
+        ->assertForbidden();
+
+    $this->assertDatabaseCount('bukus', 2);
+    $this->assertDatabaseHas('bukus', ['id' => 1, 'judul' => 'Dasar PHP']);
+});
+
+it('renders book titles as escaped text', function () {
+    Buku::findOrFail(1)->update(['judul' => '<b>Uji</b>']);
+
+    $this->get(route('buku.index'))
+        ->assertOk()
+        ->assertSee('&lt;b&gt;Uji&lt;/b&gt;', false)
+        ->assertDontSee('<b>Uji</b>', false);
 });
 
 it('creates a book using validated Eloquent data', function () {

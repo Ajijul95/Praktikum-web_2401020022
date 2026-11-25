@@ -19,6 +19,7 @@ beforeEach(function (): void {
         $table->string('email')->unique();
         $table->timestamp('email_verified_at')->nullable();
         $table->string('password');
+        $table->string('role', 20)->default('pembaca');
         $table->rememberToken();
         $table->timestamps();
     });
@@ -78,6 +79,7 @@ it('authenticates valid credentials and shows the account on the catalog', funct
         'name' => 'Pemilik Akun',
         'email' => 'azizul@gmail.com',
         'password' => Hash::make('kata-sandi-uji'),
+        'role' => 'admin',
     ]);
 
     $this->post(route('login.proses'), [
@@ -101,6 +103,7 @@ it('logs out, invalidates the session, and protects the catalog afterward', func
         'name' => 'Pemilik Akun',
         'email' => 'azizul@gmail.com',
         'password' => Hash::make('kata-sandi-uji'),
+        'role' => 'admin',
     ]);
 
     $this->actingAs($user)
